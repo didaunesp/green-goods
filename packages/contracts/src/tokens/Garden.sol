@@ -389,8 +389,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             try karmaGAPModule.createProject(
                 gardenAccount, _msgSender(), config.name, config.description, config.location, config.bannerImage
             ) {
-                // Success handled by module events
-            } catch {
+            // Success handled by module events
+            }
+                catch {
                 // Failure is non-blocking
             }
         }
@@ -410,8 +411,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
             try gardensModule.onGardenMinted(gardenAccount, config.weightScheme, config.name, config.description) returns (
                 address, address[] memory
             ) {
-                // Success handled by module events
-            } catch {
+            // Success handled by module events
+            }
+                catch {
                 // Failure is non-blocking — garden mint MUST NOT revert
             }
         }
@@ -433,8 +435,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         if (config.domainMask > 0 && address(actionRegistry) != address(0)) {
             // solhint-disable-next-line no-empty-blocks
             try actionRegistry.setGardenDomainsFromMint(gardenAccount, config.domainMask) {
-                // Success handled by ActionRegistry events
-            } catch {
+            // Success handled by ActionRegistry events
+            }
+                catch {
                 // Non-blocking — garden mint MUST NOT revert
             }
         }
@@ -443,8 +446,9 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         if (address(ensModule) != address(0) && bytes(config.slug).length > 0) {
             // solhint-disable-next-line no-empty-blocks
             try ensModule.registerGarden{ value: msg.value }(config.slug, gardenAccount) {
-                // Success handled by ENS module events
-            } catch {
+            // Success handled by ENS module events
+            }
+            catch {
                 // Non-blocking — garden mint MUST NOT revert
                 // Keep user funds recoverable if ENS registration failed.
                 if (msg.value > 0) {
@@ -501,9 +505,12 @@ contract GardenToken is ERC721Upgradeable, OwnableUpgradeable, UUPSUpgradeable {
         // Attempt to call totalSupply() to verify it's an ERC-20
         // This provides a basic sanity check without requiring full interface compliance
         // solhint-disable-next-line no-empty-blocks
-        try IERC20(token).totalSupply() returns (uint256) {
-            // Success - token validated, no additional action needed
-        } catch {
+        try IERC20(token).totalSupply() returns (
+            uint256
+        ) {
+        // Success - token validated, no additional action needed
+        }
+        catch {
             revert InvalidERC20Token();
         }
     }

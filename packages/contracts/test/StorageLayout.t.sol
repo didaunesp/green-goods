@@ -62,7 +62,7 @@ contract StorageLayoutTest is Test {
         // Total contract slots = 7 named + 43 gap = 50
         // If someone adds a variable and forgets to shrink the gap, this will catch it
         uint256 expectedNamedSlots = 7; // _nextTokenId, deploymentRegistry, hatsModule, karmaGAPModule, octantModule,
-            // gardensModule, actionRegistry
+        // gardensModule, actionRegistry
         uint256 expectedGapSize = 43;
         uint256 expectedTotal = expectedNamedSlots + expectedGapSize;
         assertEq(expectedTotal, 50, "GardenToken should use exactly 50 custom slots");

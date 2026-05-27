@@ -112,7 +112,14 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @param attestation The attestation data structure
     /// @return bool True if attestation is valid
     // solhint-disable-next-line code-complexity
-    function onAttest(Attestation calldata attestation, uint256 /*value*/ ) internal override returns (bool) {
+    function onAttest(
+        Attestation calldata attestation,
+        uint256 /*value*/
+    )
+        internal
+        override
+        returns (bool)
+    {
         if (schemaUID != bytes32(0) && attestation.schema != schemaUID) revert InvalidSchema();
 
         // Decode as tuple — struct decode reverts because EAS stores data in flat-tuple
@@ -187,7 +194,15 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
     /// @notice Work approval decisions are permanent and cannot be revoked.
     /// @dev Operators submit a new attestation if they need to change a decision.
     /// @return Always false to reject revocation attempts.
-    function onRevoke(Attestation calldata, uint256 /*value*/ ) internal pure override returns (bool) {
+    function onRevoke(
+        Attestation calldata,
+        uint256 /*value*/
+    )
+        internal
+        pure
+        override
+        returns (bool)
+    {
         return false;
     }
 
@@ -217,8 +232,9 @@ contract WorkApprovalResolver is SchemaResolver, OwnableUpgradeable, UUPSUpgrade
         try karmaGAPModule.createImpact(
             workAttestation.recipient, tokenId, workTitle, impactDesc, proof, schema.workUID, workSchema.metadata
         ) {
-            // Success - event emitted by module, no additional action needed
-        } catch {
+        // Success - event emitted by module, no additional action needed
+        }
+            catch {
             // Intentionally ignore failures - approval succeeds even if GAP integration fails
         }
     }
