@@ -148,6 +148,7 @@ export const AppProvider = ({
 
   const handleBeforeInstall = useCallback((e: Event) => {
     e.preventDefault();
+    console.log("e", e);
     setDeferredPrompt(e as BeforeInstallPromptEvent);
   }, []);
 
