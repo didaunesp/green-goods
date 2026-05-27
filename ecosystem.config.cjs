@@ -1,6 +1,9 @@
 // Each Vite/Storybook/docs app handles its own port collision via its package's
 // `predev` / `prestorybook` script. PM2 just runs the package script directly.
 
+const { readRootEnvVar } = require("./scripts/dev/read-root-env.cjs");
+const viteEnableSwDev = readRootEnvVar("VITE_ENABLE_SW_DEV", "false");
+
 module.exports = {
   apps: [
     {
@@ -42,7 +45,7 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_ENABLE_SW_DEV: "false",
+        VITE_ENABLE_SW_DEV: viteEnableSwDev,
       },
       merge_logs: true,
       autorestart: true,
