@@ -45,11 +45,6 @@ export interface AppDataProps {
   switchLanguage: (lang: Locale) => void;
 }
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
 function getBrowserLocale(available: readonly string[], fallback: string): string {
   if (typeof navigator === "undefined") return fallback;
 
@@ -138,6 +133,7 @@ export const AppProvider = ({
 
   const handleBeforeInstall = useCallback((e: Event) => {
     e.preventDefault();
+    console.log("e", e);
     setDeferredPrompt(e as BeforeInstallPromptEvent);
   }, []);
 
