@@ -34,7 +34,8 @@ function envValue(key, fallback = "") {
   return process.env[key] || rootEnv[key] || fallback;
 }
 
-const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
+const { readRootEnvVar } = require("./scripts/dev/read-root-env.cjs");
+const viteEnableSwDev = readRootEnvVar("VITE_ENABLE_SW_DEV", "false");
 
 module.exports = {
   apps: [
