@@ -538,6 +538,7 @@ export {
   usePlatformStats,
   usePrimaryAddress,
   usePublicInstallHandler,
+  useTunnelUrl,
   useProgressiveInvalidation,
   useSafeMutation,
   useProtocolMemberStatus,
