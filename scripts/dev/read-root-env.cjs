@@ -10,9 +10,15 @@ const rootEnvFile = path.join(projectRoot, ".env");
 
 function parseEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
-  const env = {};
-  const text = fs.readFileSync(filePath, "utf8");
+  let text;
+  try {
+    text = fs.readFileSync(filePath, "utf8");
+  } catch (error) {
+    console.error(`Failed to read env file: ${filePath}`, error);
+    return {};
+  }
 
+  const env = {};
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line || line.startsWith("#")) continue;
