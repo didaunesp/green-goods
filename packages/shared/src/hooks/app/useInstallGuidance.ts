@@ -366,17 +366,3 @@ function getManualInstallSteps(platform: Platform, browser: MobileBrowser): Manu
     },
   ];
 }
-
-/**
- * Declaration for BeforeInstallPromptEvent (not in standard TS types)
- */
-declare global {
-  interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: string[];
-    readonly userChoice: Promise<{
-      outcome: "accepted" | "dismissed";
-      platform: string;
-    }>;
-    prompt(): Promise<void>;
-  }
-}

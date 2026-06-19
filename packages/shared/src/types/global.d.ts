@@ -22,6 +22,16 @@ declare global {
       "appkit-button": AppKitButtonElement;
     }
   }
+
+  /** Chromium PWA install prompt (not in all TS lib versions). */
+  interface BeforeInstallPromptEvent extends Event {
+    readonly platforms: string[];
+    readonly userChoice: Promise<{
+      outcome: "accepted" | "dismissed";
+      platform: string;
+    }>;
+    prompt(): Promise<void>;
+  }
 }
 
 // Ensures file is treated as a module
