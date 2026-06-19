@@ -48,12 +48,6 @@ export interface AppDataProps {
   handleInstallCheck: (e: BeforeInstallPromptEvent | null) => void;
   switchLanguage: (lang: Locale) => void;
 }
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
 function getBrowserLocale(available: readonly string[], fallback: string): string {
   if (typeof navigator === "undefined") return fallback;
 
