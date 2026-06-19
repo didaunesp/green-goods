@@ -16,6 +16,8 @@ export interface ServiceWorkerUpdateState {
   updateAvailable: boolean;
   /** Whether the update is currently being applied */
   isUpdating: boolean;
+  /** Whether applyUpdate timed out waiting for the new worker to activate */
+  updateStalled: boolean;
   /** Check for an update and return true when a waiting worker is ready */
   checkForUpdate: () => Promise<boolean>;
   /** Apply the update (reloads the page) */
@@ -27,6 +29,7 @@ export interface ServiceWorkerUpdateState {
 }
 
 const WAITING_WORKER_TIMEOUT_MS = 10_000;
+const APPLY_UPDATE_TIMEOUT_MS = 60_000;
 
 /**
  * Minimum gap between automatic update checks triggered by `focus` /
@@ -63,6 +66,7 @@ const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [updateStalled, setUpdateStalled] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -70,6 +74,8 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const installingWorkerRef = useRef<ServiceWorker | null>(null);
   const waitingWorkerRef = useRef<ServiceWorker | null>(null);
+  const applyUpdateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controllerChangeListenerRef = useRef(false);
   // Timestamp of the last auto-check (focus/visibility-triggered). Used to
   // throttle network update checks; manual checks bypass this.
   const lastAutoCheckRef = useRef(0);
@@ -197,15 +203,39 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     };
   }, [isEnabled, handleUpdateFound, handleStateChange, markUpdateAvailable]);
 
-  // Use the event listener hook for controller change (with { once: true })
-  // This ensures we only handle it once and it's properly cleaned up
-  const handleControllerChange = useCallback(() => {
-    controllerChangeListenerRef.current = false;
-    window.location.reload();
+  const clearApplyUpdateTimeout = useCallback(() => {
+    if (applyUpdateTimeoutRef.current) {
+      clearTimeout(applyUpdateTimeoutRef.current);
+      applyUpdateTimeoutRef.current = null;
+    }
   }, []);
 
-  // Track if we've added the controllerchange listener
-  const controllerChangeListenerRef = useRef(false);
+  // Reload once the new worker takes control. Stable identity so the same
+  // reference is used for both addEventListener and removeEventListener.
+  const handleControllerChange = useCallback(() => {
+    clearApplyUpdateTimeout();
+    controllerChangeListenerRef.current = false;
+    window.location.reload();
+  }, [clearApplyUpdateTimeout]);
+
+  const removeControllerChangeListener = useCallback(() => {
+    if (controllerChangeListenerRef.current) {
+      navigator.serviceWorker?.removeEventListener("controllerchange", handleControllerChange);
+      controllerChangeListenerRef.current = false;
+    }
+  }, [handleControllerChange]);
+
+  const handleApplyUpdateTimeout = useCallback(() => {
+    applyUpdateTimeoutRef.current = null;
+    removeControllerChangeListener();
+    setIsUpdating(false);
+    setUpdateStalled(true);
+    track("sw_update_apply_timeout", {});
+    logger.warn("Service worker update apply timed out", {
+      source: "useServiceWorkerUpdate.applyUpdate",
+      timeoutMs: APPLY_UPDATE_TIMEOUT_MS,
+    });
+  }, [removeControllerChangeListener]);
 
   const waitForWaitingWorker = useCallback(
     async (registration: ServiceWorkerRegistration): Promise<ServiceWorker | null> => {
@@ -304,7 +334,11 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       waitingWorkerRef.current ?? waitingWorker ?? registrationRef.current?.waiting ?? null;
     if (!worker) return;
 
+    clearApplyUpdateTimeout();
+    removeControllerChangeListener();
+
     waitingWorkerRef.current = worker;
+    setUpdateStalled(false);
     setIsUpdating(true);
     track("sw_update_applied", {});
 
@@ -317,27 +351,35 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
       once: true,
     });
-  }, [waitingWorker, handleControllerChange]);
 
-  // Cleanup effect for controllerchange listener if component unmounts before it fires
+    applyUpdateTimeoutRef.current = setTimeout(handleApplyUpdateTimeout, APPLY_UPDATE_TIMEOUT_MS);
+  }, [
+    waitingWorker,
+    handleControllerChange,
+    handleApplyUpdateTimeout,
+    clearApplyUpdateTimeout,
+    removeControllerChangeListener,
+  ]);
+
+  // Cleanup effect for apply timeout and controllerchange listener
   useEffect(() => {
     return () => {
-      if (controllerChangeListenerRef.current) {
-        navigator.serviceWorker?.removeEventListener("controllerchange", handleControllerChange);
-        controllerChangeListenerRef.current = false;
-      }
+      clearApplyUpdateTimeout();
+      removeControllerChangeListener();
     };
-  }, [handleControllerChange]);
+  }, [clearApplyUpdateTimeout, removeControllerChangeListener]);
 
   const dismissUpdate = useCallback(() => {
     setDismissed(true);
     setUpdateAvailable(false);
+    setUpdateStalled(false);
     track("sw_update_dismissed", {});
   }, []);
 
   return {
     updateAvailable: updateAvailable && !dismissed,
     isUpdating,
+    updateStalled,
     checkForUpdate,
     applyUpdate,
     dismissUpdate,
